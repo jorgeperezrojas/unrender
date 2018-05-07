@@ -49,6 +49,13 @@ function unrender(container, options) {
   var hitTest = createHitTest(particleView, container, input);
   var updateTween = window.performance ? highResTimer : dateTimer;
 
+  // RENDER LABELS
+  // ESTO DEFINITIVAMENTE NO VA ACÁ PERO MEJOR HECHO QUE PERFECTO
+  // DEBERÍA ESCUCHAR A ALGUN EVENTO QUE LE ENTREGARA LOS LABELS PARA RENDERIZAR
+  // Por ahora recopila todas las labels que se deben renderizar usando una clase específica
+  var labelsElements = container.getElementsByClassName('labels-div-element');
+  // RENDER LABELS
+
   startEventsListening();
 
   frame();
@@ -77,6 +84,40 @@ function unrender(container, options) {
     for (var i = 0; i < rafCallbacks.length; ++i) {
       rafCallbacks[i](time);
     }
+
+
+    // RENDER LABELS
+    // ESTO NO DEBERIA HACERLO EN ESTE MÉTODO!!!
+    // DEBERÍA DESIGNAR UN EVENTO PARA EJECUTAR TODO
+    // Renderiza todas las labels proyectadas en 2D
+    for (var i = 0; i < labelsElements.length; ++i) {
+      var labelElement = labelsElements[i];
+      var x = labelElement.dataset.x;
+      var y = labelElement.dataset.y;
+      var z = labelElement.dataset.z;
+      var position = new THREE.Vector3(x,y,z)
+      var proj = position.project(camera);
+      var left = (proj.x + 1)/2 * window.innerWidth;
+      var top = (-proj.y + 1)/2 * window.innerHeight;
+
+      // actualiza posiciones solo si están en el rango visible (ventana), con cierto margen
+      // de otra forma déjalas estáticas fuera del rango
+      if (proj.z < 1 && left >= -500 && top >= -50 && left <= window.innerWidth + 500 && top <= window.innerHeight + 50) { 
+        labelElement.style.left = left + 'px';
+        labelElement.style.top =  top + 'px'; 
+
+        // cambia propiedades del font, z-index y opacidad a partir de la distancia a la cámara
+        var cam = camera.position;
+        var distancia = cam.distanceTo(labelElement.dataset)/1000;
+        var sizeFactor = Math.round(distancia*10)/10;
+        labelElement.style.fontSize = 20 - sizeFactor + 'px';
+        labelElement.style.zIndex = Math.round(20 - sizeFactor);
+        labelElement.style.opacity = 1 - Math.pow((sizeFactor - 7)/10,2);
+      }
+    }
+    // RENDER LABELS
+
+
   }
 
   function getParicleView() {
